@@ -53,6 +53,7 @@ var (
 	tenantNameRegexp = regexp.MustCompile(`^[a-z][a-z0-9-]{0,61}[a-z0-9]$`)
 
 	adminDB *sqlx.DB
+	scoreDB *sqlx.DB
 )
 
 // 環境変数を取得する、なければデフォルト値を返す
@@ -68,6 +69,30 @@ func ConnectAdminDB() (*sqlx.DB, error) {
 	config := mysql.NewConfig()
 	config.Net = "tcp"
 	config.Addr = getEnv("ISUCON_DB_HOST", "127.0.0.1") + ":" + getEnv("ISUCON_DB_PORT", "3306")
+	config.User = getEnv("ISUCON_DB_USER", "isucon")
+	config.Passwd = getEnv("ISUCON_DB_PASSWORD", "isucon")
+	config.DBName = getEnv("ISUCON_DB_NAME", "isuports")
+	config.ParseTime = true
+	dsn := config.FormatDSN()
+	// https://github.com/nhatthm/otelsql#trace-query
+	driverName, err := otelsql.Register("mysql",
+		otelsql.TraceQueryWithArgs(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	db1, err := sql.Open(driverName, dsn)
+	if err != nil {
+		return nil, err
+	}
+	return sqlx.NewDb(db1, "mysql"), nil
+}
+
+// player_score用DBに接続する
+func ConnectScoreDB() (*sqlx.DB, error) {
+	config := mysql.NewConfig()
+	config.Net = "tcp"
+	config.Addr = getEnv("ISUCON_SCORE_DB_HOST", "127.0.0.1") + ":" + getEnv("ISUCON_SCORE_DB_PORT", "3306")
 	config.User = getEnv("ISUCON_DB_USER", "isucon")
 	config.Passwd = getEnv("ISUCON_DB_PASSWORD", "isucon")
 	config.DBName = getEnv("ISUCON_DB_NAME", "isuports")
@@ -207,11 +232,18 @@ func Run() {
 
 	adminDB, err = ConnectAdminDB()
 	if err != nil {
-		e.Logger.Fatalf("failed to connect db: %v", err)
+		e.Logger.Fatalf("failed to connect admin db: %v", err)
 		return
 	}
 	adminDB.SetMaxOpenConns(10)
 	defer adminDB.Close()
+	scoreDB, err = ConnectScoreDB()
+	if err != nil {
+		e.Logger.Fatalf("failed to connect admin db: %v", err)
+		return
+	}
+	scoreDB.SetMaxOpenConns(10)
+	defer scoreDB.Close()
 
 	port := getEnv("SERVER_APP_PORT", "3000")
 	e.Logger.Infof("starting isuports server on : %s ...", port)
