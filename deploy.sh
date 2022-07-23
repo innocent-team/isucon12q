@@ -26,6 +26,7 @@ sudo systemctl daemon-reload
 if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
   sudo install -o root -g root -m 644 ./conf/nginx/sites-available/isuports.conf /etc/nginx/sites-available/isuports.conf
   sudo install -o root -g root -m 644 ./conf/nginx/nginx.conf /etc/nginx/nginx.conf
+  sudo nginx -t
 
   sudo systemctl restart nginx
   sudo systemctl enable nginx
