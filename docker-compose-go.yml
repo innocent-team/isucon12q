@@ -6,6 +6,8 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: /home/isucon/credentials/service-account-file.json
       ISUCON_DB_HOST: isucon3
       ISUCON_DB_PORT: 3306
+      ISUCON_SCORE_DB_HOST: isucon2
+      ISUCON_SCORE_DB_PORT: 3306
       ISUCON_DB_USER: isucon
       ISUCON_DB_PASSWORD: isucon
       ISUCON_DB_NAME: isuports
