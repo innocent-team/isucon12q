@@ -581,7 +581,7 @@ func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingRep
 	if err := adminDB.SelectContext(
 		ctx,
 		&vhs,
-		"SELECT player_id, crated_at AS min_created_at FROM visit_history_simple WHERE competition_id = ?",
+		"SELECT player_id, created_at AS min_created_at FROM visit_history_simple WHERE competition_id = ?",
 		comp.ID,
 	); err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("error Select visit_history_simple: tenantID=%d, competitionID=%s, %w", tenantID, comp.ID, err)
