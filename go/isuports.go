@@ -566,7 +566,7 @@ type VisitHistorySummaryRow struct {
 	MinCreatedAt int64  `db:"min_created_at"`
 }
 
-// 大会ごとの課金レポートを計算する
+// 大会ごとの課金レポートを計算する その後終了フラグを付けてほしい!。
 func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingReport, error) {
 	tenantID := comp.TenantID
 	competitonID := comp.ID
@@ -590,6 +590,7 @@ func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingRep
 		billingMap[vh.PlayerID] = "visitor"
 	}
 
+	var playerCount, visitorCount int64
 	// player_scoreを読んでいるときに更新が走ると不整合が起こるのでロックを取得する
 	fl, err := flockByTenantID(tenantID)
 	if err != nil {
@@ -613,25 +614,22 @@ func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingRep
 	}
 
 	// 大会が終了している場合のみ請求金額が確定するので計算する
-	var playerCount, visitorCount int64
-	if comp.FinishedAt.Valid {
-		for _, category := range billingMap {
-			switch category {
-			case "player":
-				playerCount++
-			case "visitor":
-				visitorCount++
-			}
+	for _, category := range billingMap {
+		switch category {
+		case "player":
+			playerCount++
+		case "visitor":
+			visitorCount++
 		}
+	}
 
-		_, err = adminDB.ExecContext(
-			ctx,
-			"INSERT INTO billing (tenant_id, competition_id, player_count, visitor_count) VALUES (?, ?, ?, ?)",
-			tenantID, comp.ID, playerCount, visitorCount,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error Insert billing: %w", err)
-		}
+	_, err = adminDB.ExecContext(
+		ctx,
+		"INSERT INTO billing (tenant_id, competition_id, player_count, visitor_count) VALUES (?, ?, ?, ?)",
+		tenantID, comp.ID, playerCount, visitorCount,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error Insert billing: %w", err)
 	}
 
 	return &BillingReport{
