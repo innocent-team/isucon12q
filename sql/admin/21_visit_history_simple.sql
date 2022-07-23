@@ -15,4 +15,6 @@ SELECT player_id, competition_id, MIN(created_at) AS created_at
 FROM `visit_history`
 GROUP BY player_id, competition_id;
 
+-- 古いvisit_historyテーブルはもう使わない (どうせdumpにある)
+DROP TABLE `visit_history`;
 -- CREATE INDEX player_id_competition_id_created_at ON visit_history (player_id, competition_id, created_at);
