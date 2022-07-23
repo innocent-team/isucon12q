@@ -596,12 +596,9 @@ type VisitHistorySummaryRow struct {
 }
 
 // 大会ごとの課金レポートを計算する
-func UpdateBiliingReport(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
-	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
-	}
-
+func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingReport, error) {
+	tenantID := comp.TenantID
+	competitonID := comp.ID
 	// ランキングにアクセスした参加者のIDを取得する
 	vhs := []VisitHistorySummaryRow{}
 	if err := adminDB.SelectContext(
@@ -631,7 +628,7 @@ func UpdateBiliingReport(ctx context.Context, tenantDB dbOrTx, tenantID int64, c
 
 	// スコアを登録した参加者のIDを取得する
 	scoredPlayerIDs := []string{}
-	if err := tenantDB.SelectContext(
+	if err := adminDB.SelectContext(
 		ctx,
 		&scoredPlayerIDs,
 		"SELECT DISTINCT(player_id) FROM player_score WHERE tenant_id = ? AND competition_id = ?",
@@ -1059,7 +1056,7 @@ func competitionFinishHandler(c echo.Context) error {
 	if id == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "competition_id required")
 	}
-	_, err = retrieveCompetition(ctx, tenantDB, id)
+	comp, err := retrieveCompetition(ctx, tenantDB, id)
 	if err != nil {
 		// 存在しない大会
 		if errors.Is(err, sql.ErrNoRows) {
@@ -1079,6 +1076,11 @@ func competitionFinishHandler(c echo.Context) error {
 			now, now, id, err,
 		)
 	}
+
+	// 終了時にbilingを求めてcommit
+	// TODO 3秒ルールで遅延してOK
+	UpdateBiliingReport(ctx, comp)
+
 	return c.JSON(http.StatusOK, SuccessResult{Status: true})
 }
 
