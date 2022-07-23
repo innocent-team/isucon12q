@@ -44,7 +44,7 @@ if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
   
   sleep 2
   
-  sudo systemctl status isuports.service
+  sudo systemctl status isuports.service --no-pager
 fi
 
 if [[ "$INSTANCE_NUM" == 3 ]]; then
