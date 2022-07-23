@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/profiler"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gofrs/flock"
 	"github.com/jmoiron/sqlx"
@@ -27,6 +28,13 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwa"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/nhatthm/otelsql"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	"go.opentelemetry.io/otel"
+
+	texporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 const (
@@ -67,7 +75,18 @@ func connectAdminDB() (*sqlx.DB, error) {
 	config.DBName = getEnv("ISUCON_DB_NAME", "isuports")
 	config.ParseTime = true
 	dsn := config.FormatDSN()
-	return sqlx.Open("mysql", dsn)
+	// https://github.com/nhatthm/otelsql#trace-query
+	driverName, err := otelsql.Register("mysql",
+		otelsql.TraceQueryWithArgs(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	db1, err := sql.Open(driverName, dsn)
+	if err != nil {
+		return nil, err
+	}
+	return sqlx.NewDb(db1, "mysql"), nil
 }
 
 // テナントDBのパスを返す
@@ -133,13 +152,50 @@ func SetCacheControlPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 
 // Run は cmd/isuports/main.go から呼ばれるエントリーポイントです
 func Run() {
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	t := time.Now()
+	cfg := profiler.Config{
+		Service: "isuports",
+		// HHmmss-MMDD
+		ServiceVersion: t.Format("150405-0102"),
+		// ProjectID must be set if not running on GCP.
+		ProjectID: projectID,
+
+		// For OpenCensus users:
+		// To see Profiler agent spans in APM backend,
+		// set EnableOCTelemetry to true
+		// EnableOCTelemetry: true,
+	}
+
+	// Profiler initialization, best done as early as possible.
+	if err := profiler.Start(cfg); err != nil {
+		log.Fatal(err)
+	}
+	// Create exporter.
+	ctx := context.Background()
+	exporter, err := texporter.New(texporter.WithProjectID(projectID))
+	if err != nil {
+		log.Fatalf("texporter.NewExporter: %v", err)
+	}
+
+	// Create trace provider with the exporter.
+	//
+	// By default it uses AlwaysSample() which samples all traces.
+	// In a production environment or high QPS setup please use
+	// probabilistic sampling.
+	// Example:
+	//   tp := sdktrace.NewTracerProvider(sdktrace.WithSampler(sdktrace.TraceIDRatioBased(0.0001)), ...)
+	tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter))
+	defer tp.ForceFlush(ctx) // flushes any pending spans
+	otel.SetTracerProvider(tp)
+
 	e := echo.New()
 	e.Debug = true
 	e.Logger.SetLevel(log.DEBUG)
 
 	var (
 		sqlLogger io.Closer
-		err       error
+		// err       error
 	)
 	// sqliteのクエリログを出力する設定
 	// 環境変数 ISUCON_SQLITE_TRACE_FILE を設定すると、そのファイルにクエリログをJSON形式で出力する
@@ -151,6 +207,7 @@ func Run() {
 	}
 	defer sqlLogger.Close()
 
+	e.Use(otelecho.Middleware("isuports"))
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(SetCacheControlPrivate)
