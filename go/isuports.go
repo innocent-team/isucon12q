@@ -405,7 +405,7 @@ func retrieveMultiPlayers(ctx context.Context, tenantDB dbOrTx, ids []string) ([
 	if err != nil {
 		return nil, err
 	}
-	if len(ids) == len(ps) {
+	if len(ids) != len(ps) {
 		return nil, fmt.Errorf("unknown ids")
 	}
 	return ps, nil
