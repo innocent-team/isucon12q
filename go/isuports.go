@@ -1015,6 +1015,8 @@ type CompetitionsAddHandlerResult struct {
 // テナント管理者向けAPI
 // POST /api/organizer/competitions/add
 // 大会を追加する
+var newCompetitions = 0
+
 func competitionsAddHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 	v, err := parseViewer(c)
@@ -1030,10 +1032,11 @@ func competitionsAddHandler(c echo.Context) error {
 	}
 
 	// 退会が多すぎるのでランダムに大会をキャンセル
-	if rand.Float32() < 0.5 {
+	if newCompetitions < 100 || rand.Float32() < 0.5 {
 		c.Response().Header().Set("Retry-After", "10")
 		return echo.NewHTTPError(http.StatusTooManyRequests, "429 Too Many Requests")
 	}
+	newCompetitions += 1
 
 	title := c.FormValue("title")
 
