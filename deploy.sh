@@ -23,7 +23,7 @@ sudo systemctl daemon-reload
 
 # NGINX
 
-if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
+if [[ "$INSTANCE_NUM" == 1 ]]; then
   sudo install -o root -g root -m 644 ./conf/nginx/sites-available/isuports.conf /etc/nginx/sites-available/isuports.conf
   sudo install -o root -g root -m 644 ./conf/nginx/nginx.conf /etc/nginx/nginx.conf
   sudo nginx -t
@@ -32,13 +32,13 @@ if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
   sudo systemctl enable nginx
 fi
 
-if [[ "$INSTANCE_NUM" == 3 ]]; then
+if [[ "$INSTANCE_NUM" == 2 || "$INSTANCE_NUM" == 3 ]]; then
   sudo systemctl stop nginx.service
   sudo systemctl disable nginx.service
 fi
 
 # APP
-if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
+if [[ "$INSTANCE_NUM" == 1 ]]; then
   sudo systemctl restart isuports.service
   sudo systemctl enable isuports.service
   
@@ -47,18 +47,18 @@ if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
   sudo systemctl status isuports.service --no-pager
 fi
 
-if [[ "$INSTANCE_NUM" == 3 ]]; then
+if [[ "$INSTANCE_NUM" == 2 || "$INSTANCE_NUM" == 3 ]]; then
   sudo systemctl stop isuports.service
   sudo systemctl disable isuports.service
 fi
 
 # MYSQL
-if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 2 ]]; then
+if [[ "$INSTANCE_NUM" == 1 ]]; then
   sudo systemctl stop mysql.service
   sudo systemctl disable mysql.service
 fi
 
-if [[ "$INSTANCE_NUM" == 3 ]]; then
+if [[ "$INSTANCE_NUM" == 2 || "$INSTANCE_NUM" == 3 ]]; then
   sudo install -o root -g root -m 644 ./conf/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
 
   echo "MySQL restart したいなら手動でやってね"
