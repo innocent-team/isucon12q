@@ -688,36 +688,6 @@ type BillingRow struct {
 	VisitorCount  int64  `db:"visitor_count"`
 }
 
-func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
-
-	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
-	}
-
-	var playerCount int64
-	var visitorCount int64
-	if comp.FinishedAt.Valid {
-		var billing BillingRow
-		if err := adminDB.GetContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? LIMIT 1", competitonID); err != nil {
-			return nil, fmt.Errorf("error Select billing %s: %w", competitonID, err)
-		}
-
-		playerCount = billing.PlayerCount
-		visitorCount = billing.VisitorCount
-	}
-
-	return &BillingReport{
-		CompetitionID:     comp.ID,
-		CompetitionTitle:  comp.Title,
-		PlayerCount:       playerCount,
-		VisitorCount:      visitorCount,
-		BillingPlayerYen:  100 * playerCount, // スコアを登録した参加者は100円
-		BillingVisitorYen: 10 * visitorCount, // ランキングを閲覧だけした(スコアを登録していない)参加者は10円
-		BillingYen:        100*playerCount + 10*visitorCount,
-	}, nil
-}
-
 func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competitionIDs []string) (map[string]*BillingReport, error) {
 	billingReports := make(map[string]*BillingReport)
 	if len(competitionIDs) == 0 {
