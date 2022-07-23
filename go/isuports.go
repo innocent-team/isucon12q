@@ -54,6 +54,7 @@ var (
 
 	adminDB *sqlx.DB
 
+	// XXX: もはや不要
 	sqliteDriverName = "sqlite3"
 )
 
@@ -90,6 +91,7 @@ func connectAdminDB() (*sqlx.DB, error) {
 }
 
 // テナントDBのパスを返す
+// XXX: もはや不要
 func tenantDBPath(id int64) string {
 	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "../tenant_db")
 	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.db", id))
@@ -101,13 +103,8 @@ func connectToTenantDB(id int64) (*sqlx.DB, error) {
 }
 
 // テナントDBを新規に作成する
+// XXX: もはや不要
 func createTenantDB(id int64) error {
-	p := tenantDBPath(id)
-
-	cmd := exec.Command("sh", "-c", fmt.Sprintf("sqlite3 %s < %s", p, tenantDBSchemaFilePath))
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to exec sqlite3 %s < %s, out=%s: %w", p, tenantDBSchemaFilePath, string(out), err)
-	}
 	return nil
 }
 
@@ -1163,8 +1160,8 @@ func competitionScoreHandler(c echo.Context) error {
 		if _, err := tenantDB.NamedExecContext(
 			ctx,
 			"INSERT INTO player_score (tenant_id, player_id, competition_id, score, created_at, updated_at)"+
-			" VALUES (:tenant_id, :player_id, :competition_id, :score, :created_at, :updated_at) " +
-			"ON DUPLICATE KEY UPDATE score = :score, created_at = :created_at, updated_at = :updated_at",
+				" VALUES (:tenant_id, :player_id, :competition_id, :score, :created_at, :updated_at) "+
+				"ON DUPLICATE KEY UPDATE score = :score, created_at = :created_at, updated_at = :updated_at",
 			ps,
 		); err != nil {
 			return fmt.Errorf(
