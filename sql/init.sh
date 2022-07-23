@@ -25,6 +25,11 @@ mysql -u"$ISUCON_DB_USER" \
 		--host "$ISUCON_DB_HOST" \
 		--port "$ISUCON_DB_PORT" \
 		"$ISUCON_DB_NAME" < /home/isucon/dump/isuports.billing_visit_history_simple.dump
+mysql -u"$ISUCON_DB_USER" \
+		-p"$ISUCON_DB_PASSWORD" \
+		--host "$ISUCON_DB_HOST" \
+		--port "$ISUCON_DB_PORT" \
+		"$ISUCON_DB_NAME" < ./10_add_index.sql
 # テナントごとの情報もMySQLに流し込む
 # ./sqlite3-to-sql ../../master.db | mysql -u"$ISUCON_DB_USER" -p"$ISUCON_DB_PASSWORD" --host "$ISUCON_DB_HOST" --port "$ISUCON_DB_PORT" "$ISUCON_DB_NAME"
 
