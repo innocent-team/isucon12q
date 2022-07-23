@@ -87,6 +87,12 @@ func ConnectAdminDB() (*sqlx.DB, error) {
 	return sqlx.NewDb(db1, "mysql"), nil
 }
 
+func UpdateAdminDB() (*sqlx.DB, error) {
+	var err error
+	adminDB, err = ConnectAdminDB()
+	return adminDB, err
+}
+
 // システム全体で一意なIDを生成する
 func dispenseID(ctx context.Context) (string, error) {
 	var id int64

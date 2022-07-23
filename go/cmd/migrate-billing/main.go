@@ -9,7 +9,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	db, err := isuports.ConnectAdminDB()
+	db, err := isuports.UpdateAdminDB()
 	if err != nil {
 		log.Fatalf("Failed to connect DB: %s", err)
 	}
