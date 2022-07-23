@@ -659,13 +659,17 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
 	}
 
-	var billing BillingRow
-	if err := adminDB.GetContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? LIMIT 1", competitonID); err != nil {
-		return nil, fmt.Errorf("error Select billing: %w", err)
-	}
+	var playerCount int64
+	var visitorCount int64
+	if comp.FinishedAt.Valid {
+		var billing BillingRow
+		if err := adminDB.GetContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? LIMIT 1", competitonID); err != nil {
+			return nil, fmt.Errorf("error Select billing: %w", err)
+		}
 
-	playerCount := billing.PlayerCount
-	visitorCount := billing.VisitorCount
+		playerCount = billing.PlayerCount
+		visitorCount = billing.VisitorCount
+	}
 
 	return &BillingReport{
 		CompetitionID:     comp.ID,
