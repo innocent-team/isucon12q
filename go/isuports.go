@@ -1032,7 +1032,10 @@ func competitionFinishHandler(c echo.Context) error {
 
 	// 終了時にbilingを求めてcommit
 	// TODO 3秒ルールで遅延してOK
-	UpdateBiliingReport(ctx, comp)
+	_, err = UpdateBiliingReport(ctx, comp)
+	if err != nil {
+		return fmt.Errorf("error UpdateBillingReport comp=%s : %w", comp.ID, err)
+	}
 
 	now := time.Now().Unix()
 	if _, err := tenantDB.ExecContext(
