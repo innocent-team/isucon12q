@@ -73,6 +73,7 @@ func ConnectAdminDB() (*sqlx.DB, error) {
 	config.Passwd = getEnv("ISUCON_DB_PASSWORD", "isucon")
 	config.DBName = getEnv("ISUCON_DB_NAME", "isuports")
 	config.ParseTime = true
+	config.InterpolateParams = true
 	dsn := config.FormatDSN()
 	// https://github.com/nhatthm/otelsql#trace-query
 	driverName, err := otelsql.Register("mysql",
@@ -97,6 +98,7 @@ func ConnectScoreDB() (*sqlx.DB, error) {
 	config.Passwd = getEnv("ISUCON_DB_PASSWORD", "isucon")
 	config.DBName = getEnv("ISUCON_DB_NAME", "isuports")
 	config.ParseTime = true
+	config.InterpolateParams = true
 	dsn := config.FormatDSN()
 	// https://github.com/nhatthm/otelsql#trace-query
 	driverName, err := otelsql.Register("mysql",
