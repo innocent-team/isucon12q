@@ -3,6 +3,7 @@ services:
     build: ./go
     environment:
       GOOGLE_CLOUD_PROJECT: triple-innocent
+      GOOGLE_APPLICATION_CREDENTIALS: /home/isucon/webapp/credentials/service-account-file.json
       ISUCON_DB_HOST: 127.0.0.1
       ISUCON_DB_PORT: 3306
       ISUCON_DB_USER: isucon
@@ -15,4 +16,5 @@ services:
       - /home/isucon/webapp/public.pem:/home/isucon/webapp/public.pem:ro
       - /home/isucon/initial_data:/home/isucon/initial_data
       - /home/isucon/tmp:/home/isucon/tmp
+      - /home/isucon/webapp/credentials:/home/isucon/webapp/credentials
     init: true
