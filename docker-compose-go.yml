@@ -17,4 +17,5 @@ services:
       - /home/isucon/initial_data:/home/isucon/initial_data
       - /home/isucon/tmp:/home/isucon/tmp
       - /home/isucon/credentials:/home/isucon/credentials
+      - /home/isucon/dump:/home/isucon/dump
     init: true

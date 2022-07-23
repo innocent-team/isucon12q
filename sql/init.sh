@@ -14,7 +14,7 @@ mysql -u"$ISUCON_DB_USER" \
 		-p"$ISUCON_DB_PASSWORD" \
 		--host "$ISUCON_DB_HOST" \
 		--port "$ISUCON_DB_PORT" \
-		"$ISUCON_DB_NAME" < /home/isucon/dump.isuports.mysql
+		"$ISUCON_DB_NAME" < /home/isucon/dump/isuports.mysql
 # テナントごとの情報もMySQLに流し込む
 # ./sqlite3-to-sql ../../master.db | mysql -u"$ISUCON_DB_USER" -p"$ISUCON_DB_PASSWORD" --host "$ISUCON_DB_HOST" --port "$ISUCON_DB_PORT" "$ISUCON_DB_NAME"
 
