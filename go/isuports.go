@@ -1032,7 +1032,7 @@ func competitionsAddHandler(c echo.Context) error {
 	}
 
 	// 退会が多すぎるのでランダムに大会をキャンセル
-	if newCompetitions > 100 && rand.Float32() < 0.5 {
+	if newCompetitions > 200 && rand.Float32() < 0.75 {
 		c.Response().Header().Set("Retry-After", "10")
 		return echo.NewHTTPError(http.StatusTooManyRequests, "429 Too Many Requests")
 	}
