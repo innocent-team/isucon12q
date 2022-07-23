@@ -718,8 +718,8 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 	}, nil
 }
 
-func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competitionIDs []string) ([]*BillingReport, error) {
-	var billingReports []*BillingReport
+func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competitionIDs []string) (map[string]*BillingReport, error) {
+	billingReports := make(map[string]*BillingReport)
 	if len(competitionIDs) == 0 {
 		return billingReports, nil
 	}
@@ -746,7 +746,7 @@ func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competit
 		return nil, err
 	}
 	for _, report := range dtoReports {
-		billingReports = append(billingReports, &BillingReport{
+		billingReports[report.ID] = &BillingReport{
 			CompetitionID:     report.ID,
 			CompetitionTitle:  report.Title,
 			PlayerCount:       report.PlayerCount,
@@ -754,7 +754,7 @@ func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competit
 			BillingPlayerYen:  100 * report.PlayerCount, // スコアを登録した参加者は100円
 			BillingVisitorYen: 10 * report.VisitorCount, // ランキングを閲覧だけした(スコアを登録していない)参加者は10円
 			BillingYen:        100*report.PlayerCount + 10*report.VisitorCount,
-		})
+		}
 	}
 	return billingReports, nil
 }
@@ -843,7 +843,7 @@ func tenantsBillingHandler(c echo.Context) error {
 				return fmt.Errorf("failed to Select competition with billing reports: %w", err)
 			}
 			for _, report := range reports {
-				tb.BillingYen = report.BillingYen
+				tb.BillingYen += report.BillingYen
 			}
 			tenantBillings = append(tenantBillings, tb)
 			return nil
