@@ -22,7 +22,7 @@ mysql -u"$ISUCON_DB_USER" \
 		--port "$ISUCON_DB_PORT" \
 		"$ISUCON_DB_NAME" < tenant/10_schema.sql
 
-for tenant_db in ../../initial_data/*.db;
+for tenant_db in ../../initial_data/*.db; do
 	./sqlite3-to-sql $tenant_db
 done
 
