@@ -237,14 +237,14 @@ func Run() {
 		e.Logger.Fatalf("failed to connect admin db: %v", err)
 		return
 	}
-	adminDB.SetMaxOpenConns(10)
+	adminDB.SetMaxOpenConns(20)
 	defer adminDB.Close()
 	scoreDB, err = ConnectScoreDB()
 	if err != nil {
 		e.Logger.Fatalf("failed to connect admin db: %v", err)
 		return
 	}
-	scoreDB.SetMaxOpenConns(10)
+	scoreDB.SetMaxOpenConns(20)
 	defer scoreDB.Close()
 
 	port := getEnv("SERVER_APP_PORT", "3000")
