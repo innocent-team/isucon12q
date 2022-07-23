@@ -504,7 +504,7 @@ func lockFilePath(id int64) string {
 var TenantLock = sync.Map{}
 
 func getLockByTennatID(tenantID int64) *sync.RWMutex {
-	m, _ := TenantLock.LoadOrStore(tenantID, sync.RWMutex{})
+	m, _ := TenantLock.LoadOrStore(tenantID, &sync.RWMutex{})
 	return m.(*sync.RWMutex)
 }
 
