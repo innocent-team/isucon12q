@@ -60,7 +60,8 @@ fi
 if [[ "$INSTANCE_NUM" == 3 ]]; then
   sudo install -o root -g root -m 644 ./conf/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
 
-  sudo systemctl restart mysql
+  echo "MySQL restart したいなら手動でやってね"
+#  sudo systemctl restart mysql
   sudo systemctl enable mysql
 fi
 
