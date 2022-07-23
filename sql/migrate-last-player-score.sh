@@ -1,6 +1,6 @@
 #!/bin/sh
+set -exu
 
-set -ex
 cd `dirname $0`
 
 for tenant_db in ../../initial_data/*.db; do
