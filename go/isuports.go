@@ -1028,6 +1028,10 @@ func competitionFinishHandler(c echo.Context) error {
 		return fmt.Errorf("error retrieveCompetition: %w", err)
 	}
 
+	// 終了時にbilingを求めてcommit
+	// TODO 3秒ルールで遅延してOK
+	UpdateBiliingReport(ctx, comp)
+
 	now := time.Now().Unix()
 	if _, err := tenantDB.ExecContext(
 		ctx,
@@ -1039,10 +1043,6 @@ func competitionFinishHandler(c echo.Context) error {
 			now, now, id, err,
 		)
 	}
-
-	// 終了時にbilingを求めてcommit
-	// TODO 3秒ルールで遅延してOK
-	UpdateBiliingReport(ctx, comp)
 
 	return c.JSON(http.StatusOK, SuccessResult{Status: true})
 }
@@ -1164,7 +1164,7 @@ func competitionScoreHandler(c echo.Context) error {
 
 	if _, err := retrieveMultiPlayers(ctx, tenantDB, playerIDs); err != nil {
 		// 存在しない参加者が含まれている
-		if (err.Error() == "unknown ids") {
+		if err.Error() == "unknown ids" {
 			return echo.NewHTTPError(
 				http.StatusBadRequest,
 				fmt.Sprintf("player not found: %s", playerIDs),
