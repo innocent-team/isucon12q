@@ -737,8 +737,8 @@ func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competit
 	query, args, err := sqlx.In(
 		"SELECT c.id, c.title, c.finished_at, b.player_count, b.visitor_count "+
 			"FROM competition c "+
-			"WHERE c.id IN (?) "+
-			"LEFT JOIN billing b ON c.id = b.competition_id", competitionIDs)
+			"LEFT JOIN billing b ON c.id = b.competition_id "+
+			"WHERE c.id IN (?) ", competitionIDs)
 	if err != nil {
 		return nil, err
 	}
