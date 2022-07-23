@@ -581,11 +581,10 @@ func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingRep
 	if err := adminDB.SelectContext(
 		ctx,
 		&vhs,
-		"SELECT player_id, MIN(created_at) AS min_created_at FROM visit_history WHERE tenant_id = ? AND competition_id = ? GROUP BY player_id",
-		tenantID,
+		"SELECT player_id, crated_at AS min_created_at FROM visit_history_simple WHERE competition_id = ?",
 		comp.ID,
 	); err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("error Select visit_history: tenantID=%d, competitionID=%s, %w", tenantID, comp.ID, err)
+		return nil, fmt.Errorf("error Select visit_history_simple: tenantID=%d, competitionID=%s, %w", tenantID, comp.ID, err)
 	}
 	billingMap := map[string]string{}
 	for _, vh := range vhs {
@@ -1429,11 +1428,12 @@ func competitionRankingHandler(c echo.Context) error {
 
 	if _, err := adminDB.ExecContext(
 		ctx,
-		"INSERT INTO visit_history (player_id, tenant_id, competition_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		v.playerID, tenant.ID, competitionID, now, now,
+		"INSERT INTO visit_history_simple (player_id, competition_id, created_at) "+
+		"VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE player_id = player_id", // upsertでnop
+		v.playerID, competitionID, now,
 	); err != nil {
 		return fmt.Errorf(
-			"error Insert visit_history: playerID=%s, tenantID=%d, competitionID=%s, createdAt=%d, updatedAt=%d, %w",
+			"error Insert visit_history_simple: playerID=%s, tenantID=%d, competitionID=%s, createdAt=%d, updatedAt=%d, %w",
 			v.playerID, tenant.ID, competitionID, now, now, err,
 		)
 	}
