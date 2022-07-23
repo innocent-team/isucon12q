@@ -15,7 +15,7 @@
 #### ISUCON ####
 disable-log-bin
 max_connections = 2048
-innodb_buffer_pool_size = 2600M
+innodb_buffer_pool_size = 2800M
 innodb_flush_log_at_trx_commit = 0
 innodb_file_per_table=ON
 innodb_flush_method=O_DIRECT
@@ -27,7 +27,7 @@ innodb_doublewrite = 0
 
 slow_query_log = 1
 slow_query_log_file = /var/log/mysql/mysql-slow.log
-long_query_time = 0 #slow query time
+long_query_time = 0.05 #slow query time
 log-queries-not-using-indexes
 
 
