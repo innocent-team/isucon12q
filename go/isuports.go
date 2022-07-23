@@ -106,7 +106,7 @@ func randSeq(n int) string {
 
 // システム全体で一意なIDを生成する
 func dispenseID(ctx context.Context) (string, error) {
-	return randSeq(100), nil
+	return randSeq(20), nil
 }
 
 // 全APIにCache-Control: privateを設定する
