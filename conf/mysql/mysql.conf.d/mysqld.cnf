@@ -12,6 +12,27 @@
 # The following values assume you have at least 32M ram
 
 [mysqld]
+#### ISUCON ####
+disable-log-bin
+max_connections = 2048
+innodb_buffer_pool_size = 3G
+innodb_flush_log_at_trx_commit = 0
+innodb_file_per_table=ON
+innodb_flush_method=O_DIRECT
+innodb_log_buffer_size=32M
+read_buffer_size=256K
+innodb_doublewrite = 0
+
+### SLOW LOGS
+
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/mysql-slow.log
+long_query_time = 0 #slow query time
+log-queries-not-using-indexes
+
+
+##### ISUCON #####
+
 #
 # * Basic Settings
 #
