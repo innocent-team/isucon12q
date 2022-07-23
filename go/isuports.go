@@ -726,16 +726,15 @@ func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competit
 
 	type dtoCompetitionWithBilling struct {
 		// ここからCompetitionRow
-		ID         string        `db:"id"`
-		Title      string        `db:"title"`
-		FinishedAt sql.NullInt64 `db:"finished_at"`
+		ID    string `db:"id"`
+		Title string `db:"title"`
 		// ここからBillingRow
 		PlayerCount  int64 `db:"player_count"`
 		VisitorCount int64 `db:"visitor_count"`
 	}
 	var dtoReports []*dtoCompetitionWithBilling
 	query, args, err := sqlx.In(
-		"SELECT c.id, c.title, c.finished_at, b.player_count, b.visitor_count "+
+		"SELECT c.id, c.title, IFNULL(b.player_count, 0) AS player_count, IFNULL(b.visitor_count, 0) AS visitor_count "+
 			"FROM competition c "+
 			"LEFT JOIN billing b ON c.id = b.competition_id "+
 			"WHERE c.id IN (?) ", competitionIDs)
@@ -747,11 +746,6 @@ func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competit
 		return nil, err
 	}
 	for _, report := range dtoReports {
-		// まだ終わってないならクリアしておく
-		if !report.FinishedAt.Valid {
-			report.PlayerCount = 0
-			report.VisitorCount = 0
-		}
 		billingReports = append(billingReports, &BillingReport{
 			CompetitionID:     report.ID,
 			CompetitionTitle:  report.Title,
