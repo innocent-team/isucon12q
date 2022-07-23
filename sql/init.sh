@@ -16,15 +16,7 @@ mysql -u"$ISUCON_DB_USER" \
 		--port "$ISUCON_DB_PORT" \
 		"$ISUCON_DB_NAME" < init.sql
 # テナントごとの情報もMySQLに流し込む
-mysql -u"$ISUCON_DB_USER" \
-		-p"$ISUCON_DB_PASSWORD" \
-		--host "$ISUCON_DB_HOST" \
-		--port "$ISUCON_DB_PORT" \
-		"$ISUCON_DB_NAME" < tenant/10_schema.sql
-
-for tenant_db in ../../initial_data/2.db; do
-	./sqlite3-to-sql $tenant_db | mysql -u"$ISUCON_DB_USER" -p"$ISUCON_DB_PASSWORD" --host "$ISUCON_DB_HOST" --port "$ISUCON_DB_PORT" "$ISUCON_DB_NAME"
-done
+./sqlite3-to-sql ../../master.db | mysql -u"$ISUCON_DB_USER" -p"$ISUCON_DB_PASSWORD" --host "$ISUCON_DB_HOST" --port "$ISUCON_DB_PORT" "$ISUCON_DB_NAME"
 
 # # SQLiteのデータベースを初期化
 # rm -f ../tenant_db/*.db
