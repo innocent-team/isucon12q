@@ -1326,10 +1326,18 @@ func billingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select competition: %w", err)
 	}
 	tbrs := make([]BillingReport, 0, len(cs))
+	var compIDs []string
 	for _, comp := range cs {
-		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID)
-		if err != nil {
-			return fmt.Errorf("error billingReportByCompetition: %w", err)
+		compIDs = append(compIDs, comp.ID)
+	}
+	reports, err := billingReportsByCompetitions(ctx, tenantDB, compIDs)
+	if err != nil {
+		return fmt.Errorf("error Select billing reports: %w", err)
+	}
+	for _, comp := range cs {
+		report, ok := reports[comp.ID]
+		if !ok {
+			return fmt.Errorf("error billingReportByCompetition: not found compID=%s", comp.ID)
 		}
 		tbrs = append(tbrs, *report)
 	}
