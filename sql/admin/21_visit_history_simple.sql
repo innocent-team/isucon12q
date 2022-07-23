@@ -1,4 +1,4 @@
-DROP TABLE IF NOT EXISTS `visit_history_simple`;
+DROP TABLE IF EXISTS `visit_history_simple`;
 
 CREATE TABLE `visit_history_simple` (
   `player_id` VARCHAR(255) NOT NULL,
