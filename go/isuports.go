@@ -1408,6 +1408,18 @@ func competitionRankingHandler(c echo.Context) error {
 	}
 	ranks := make([]CompetitionRank, 0, len(pss))
 	scoredPlayerSet := make(map[string]struct{}, len(pss))
+	var playerIDs []string
+	for _, ps := range pss {
+		playerIDs = append(playerIDs, ps.PlayerID)
+	}
+	players, err := retrieveMultiPlayers(ctx, tenantDB, playerIDs)
+	if err != nil {
+		return fmt.Errorf("error retrieveMultiPlayers: %w", err)
+	}
+	idToPlayer := make(map[string]*PlayerRow)
+	for _, p := range players {
+		idToPlayer[p.ID] = p
+	}
 	for _, ps := range pss {
 		// XXX: row_numは消したので↓のコメントに意味はない
 		// player_scoreが同一player_id内ではrow_numの降順でソートされているので
@@ -1416,9 +1428,9 @@ func competitionRankingHandler(c echo.Context) error {
 			continue
 		}
 		scoredPlayerSet[ps.PlayerID] = struct{}{}
-		p, err := retrievePlayer(ctx, tenantDB, ps.PlayerID)
-		if err != nil {
-			return fmt.Errorf("error retrievePlayer: %w", err)
+		p, ok := idToPlayer[ps.PlayerID]
+		if !ok {
+			return fmt.Errorf("error retrievePlayer: id=%s", ps.PlayerID)
 		}
 		ranks = append(ranks, CompetitionRank{
 			Score:             ps.Score,
