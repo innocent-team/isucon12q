@@ -1072,6 +1072,7 @@ func competitionScoreHandler(c echo.Context) error {
 	var rowNum int64
 	playerScoreRows := []PlayerScoreRow{}
 	playerIDs := []string{}
+	alreadyAppendedPlayerID := make(map[string]bool)
 	for {
 		rowNum++
 		row, err := r.Read()
@@ -1087,7 +1088,10 @@ func competitionScoreHandler(c echo.Context) error {
 		playerID, scoreStr := row[0], row[1]
 
 		// 参加していないプレイヤーを探すためにプレイヤーIDを保存する
-		playerIDs = append(playerIDs, playerID)
+		if _, ok := alreadyAppendedPlayerID[playerID]; !ok {
+			playerIDs = append(playerIDs, playerID)
+			alreadyAppendedPlayerID[playerID] = true
+		}
 
 		var score int64
 		if score, err = strconv.ParseInt(scoreStr, 10, 64); err != nil {
