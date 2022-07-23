@@ -29,6 +29,11 @@ if [[ "$INSTANCE_NUM" == 1 || "$INSTANCE_NUM" == 3 ]]; then
   sudo systemctl restart nginx
   sudo systemctl enable nginx
   
+  sudo install -o root -g root -m 644 ./conf/mysql/mysql.conf.d/mysqld.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
+
+  sudo systemctl restart mysql
+  sudo systemctl enable mysql
+
   sudo systemctl restart isuports.service
   sudo systemctl enable isuports.service
   
