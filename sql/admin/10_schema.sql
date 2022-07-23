@@ -3,6 +3,7 @@ USE `isuports`;
 DROP TABLE IF EXISTS `tenant`;
 DROP TABLE IF EXISTS `id_generator`;
 DROP TABLE IF EXISTS `visit_history`;
+DROP TABLE IF EXISTS `billing`;
 
 CREATE TABLE `tenant` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
