@@ -130,11 +130,12 @@ func SetCacheControlPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 // Run は cmd/isuports/main.go から呼ばれるエントリーポイントです
 func Run() {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	t := time.Now()
+	// t := time.Now()
 	cfg := profiler.Config{
 		Service: "isuports",
 		// HHmmss-MMDD
-		ServiceVersion: t.Format("150405-0102"),
+		// XXX: quota突破したのでバージョンを固定する
+		ServiceVersion: "035945-0723",
 		// ProjectID must be set if not running on GCP.
 		ProjectID: projectID,
 
@@ -1429,7 +1430,7 @@ func competitionRankingHandler(c echo.Context) error {
 	if _, err := adminDB.ExecContext(
 		ctx,
 		"INSERT INTO visit_history_simple (player_id, competition_id, created_at) "+
-		"VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE player_id = player_id", // upsertでnop
+			"VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE player_id = player_id", // upsertでnop
 		v.playerID, competitionID, now,
 	); err != nil {
 		return fmt.Errorf(
