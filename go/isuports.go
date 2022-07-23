@@ -64,7 +64,7 @@ func getEnv(key string, defaultValue string) string {
 }
 
 // 管理用DBに接続する
-func connectAdminDB() (*sqlx.DB, error) {
+func ConnectAdminDB() (*sqlx.DB, error) {
 	config := mysql.NewConfig()
 	config.Net = "tcp"
 	config.Addr = getEnv("ISUCON_DB_HOST", "127.0.0.1") + ":" + getEnv("ISUCON_DB_PORT", "3306")
@@ -198,7 +198,7 @@ func Run() {
 
 	e.HTTPErrorHandler = errorResponseHandler
 
-	adminDB, err = connectAdminDB()
+	adminDB, err = ConnectAdminDB()
 	if err != nil {
 		e.Logger.Fatalf("failed to connect db: %v", err)
 		return
