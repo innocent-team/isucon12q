@@ -1113,7 +1113,7 @@ func competitionScoreHandler(c echo.Context) error {
 		})
 	}
 
-	if _, err := retrievePlayers(ctx, tenantDB, playerIDs); err != nil {
+	if _, err := retrieveMultiPlayers(ctx, tenantDB, playerIDs); err != nil {
 		// 存在しない参加者が含まれている
 		if errors.Is(err, sql.ErrNoRows) {
 			return echo.NewHTTPError(
