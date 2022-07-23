@@ -135,7 +135,7 @@ func Run() {
 		Service: "isuports",
 		// HHmmss-MMDD
 		// XXX: quota突破したのでバージョンを固定する
-		ServiceVersion: "035945-0723",
+		ServiceVersion: "014135-0723",
 		// ProjectID must be set if not running on GCP.
 		ProjectID: projectID,
 
