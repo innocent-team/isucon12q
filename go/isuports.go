@@ -469,14 +469,14 @@ func retrieveCompetition(ctx context.Context, tenantDB dbOrTx, id string) (*Comp
 }
 
 type PlayerScoreRow struct {
-	TenantID      int64  `db:"tenant_id"`
-	ID            string `db:"id"`
+	TenantID int64 `db:"tenant_id"`
+	// ID            string `db:"id"` // MySQLに移行するときに消した
 	PlayerID      string `db:"player_id"`
 	CompetitionID string `db:"competition_id"`
 	Score         int64  `db:"score"`
-	RowNum        int64  `db:"row_num"`
-	CreatedAt     int64  `db:"created_at"`
-	UpdatedAt     int64  `db:"updated_at"`
+	// RowNum        int64  `db:"row_num"` // UpdatedAtで代替可能なはず
+	CreatedAt int64 `db:"created_at"`
+	UpdatedAt int64 `db:"updated_at"`
 }
 
 // 排他ロックのためのファイル名を生成する
@@ -1139,20 +1139,20 @@ func competitionScoreHandler(c echo.Context) error {
 				fmt.Sprintf("error strconv.ParseUint: scoreStr=%s, %s", scoreStr, err),
 			)
 		}
-		id, err := dispenseID(ctx)
-		if err != nil {
-			return fmt.Errorf("error dispenseID: %w", err)
-		}
+		// id, err := dispenseID(ctx)
+		// if err != nil {
+		// 	return fmt.Errorf("error dispenseID: %w", err)
+		// }
 		now := time.Now().Unix()
 		playerScoreRows = append(playerScoreRows, PlayerScoreRow{
-			ID:            id,
+			// ID:            id,
 			TenantID:      v.tenantID,
 			PlayerID:      playerID,
 			CompetitionID: competitionID,
 			Score:         score,
-			RowNum:        rowNum,
-			CreatedAt:     now,
-			UpdatedAt:     now,
+			// RowNum:        rowNum,
+			CreatedAt: now,
+			UpdatedAt: now,
 		})
 	}
 
@@ -1167,12 +1167,16 @@ func competitionScoreHandler(c echo.Context) error {
 	for _, ps := range playerScoreRows {
 		if _, err := tenantDB.NamedExecContext(
 			ctx,
-			"INSERT INTO player_score (id, tenant_id, player_id, competition_id, score, row_num, created_at, updated_at) VALUES (:id, :tenant_id, :player_id, :competition_id, :score, :row_num, :created_at, :updated_at)",
+			"INSERT INTO player_score (tenant_id, player_id, competition_id, score, created_at, updated_at)"+
+			" VALUES (:tenant_id, :player_id, :competition_id, :score, :created_at, :updated_at) " +
+			"ON DUPLICATE KEY UPDATE score = :score, created_at = :created_at, updated_at = :updated_at",
 			ps,
 		); err != nil {
 			return fmt.Errorf(
-				"error Insert player_score: id=%s, tenant_id=%d, playerID=%s, competitionID=%s, score=%d, rowNum=%d, createdAt=%d, updatedAt=%d, %w",
-				ps.ID, ps.TenantID, ps.PlayerID, ps.CompetitionID, ps.Score, ps.RowNum, ps.CreatedAt, ps.UpdatedAt, err,
+				// "error Insert player_score: id=%s, tenant_id=%d, playerID=%s, competitionID=%s, score=%d, rowNum=%d, createdAt=%d, updatedAt=%d, %w",
+				// ps.ID, ps.TenantID, ps.PlayerID, ps.CompetitionID, ps.Score, ps.RowNum, ps.CreatedAt, ps.UpdatedAt, err,
+				"error Insert player_score: tenant_id=%d, playerID=%s, competitionID=%s, score=%d, createdAt=%d, updatedAt=%d, %w",
+				ps.TenantID, ps.PlayerID, ps.CompetitionID, ps.Score, ps.CreatedAt, ps.UpdatedAt, err,
 			)
 
 		}
@@ -1301,8 +1305,8 @@ func playerHandler(c echo.Context) error {
 		if err := tenantDB.GetContext(
 			ctx,
 			&ps,
-			// 最後にCSVに登場したスコアを採用する = row_numが一番大きいもの
-			"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? ORDER BY row_num DESC LIMIT 1",
+			// 最後にCSVに登場したスコアを採用する
+			"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? AND player_id = ? LIMIT 1",
 			v.tenantID,
 			c.ID,
 			p.ID,
@@ -1347,7 +1351,7 @@ type CompetitionRank struct {
 	Score             int64  `json:"score"`
 	PlayerID          string `json:"player_id"`
 	PlayerDisplayName string `json:"player_display_name"`
-	RowNum            int64  `json:"-"` // APIレスポンスのJSONには含まれない
+	UpdatedAt         int64  `json:"-"` // APIレスポンスのJSONには含まれない
 }
 
 type CompetitionRankingHandlerResult struct {
@@ -1427,7 +1431,7 @@ func competitionRankingHandler(c echo.Context) error {
 	if err := tenantDB.SelectContext(
 		ctx,
 		&pss,
-		"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY row_num DESC",
+		"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY updated_at DESC",
 		tenant.ID,
 		competitionID,
 	); err != nil {
@@ -1436,6 +1440,7 @@ func competitionRankingHandler(c echo.Context) error {
 	ranks := make([]CompetitionRank, 0, len(pss))
 	scoredPlayerSet := make(map[string]struct{}, len(pss))
 	for _, ps := range pss {
+		// XXX: row_numは消したので↓のコメントに意味はない
 		// player_scoreが同一player_id内ではrow_numの降順でソートされているので
 		// 現れたのが2回目以降のplayer_idはより大きいrow_numでスコアが出ているとみなせる
 		if _, ok := scoredPlayerSet[ps.PlayerID]; ok {
@@ -1450,12 +1455,12 @@ func competitionRankingHandler(c echo.Context) error {
 			Score:             ps.Score,
 			PlayerID:          p.ID,
 			PlayerDisplayName: p.DisplayName,
-			RowNum:            ps.RowNum,
+			UpdatedAt:         ps.UpdatedAt,
 		})
 	}
 	sort.Slice(ranks, func(i, j int) bool {
 		if ranks[i].Score == ranks[j].Score {
-			return ranks[i].RowNum < ranks[j].RowNum
+			return ranks[i].UpdatedAt < ranks[j].UpdatedAt
 		}
 		return ranks[i].Score > ranks[j].Score
 	})
