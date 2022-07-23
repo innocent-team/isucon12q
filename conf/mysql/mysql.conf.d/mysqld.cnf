@@ -15,7 +15,7 @@
 #### ISUCON ####
 disable-log-bin
 max_connections = 2048
-innodb_buffer_pool_size = 3G
+innodb_buffer_pool_size = 2600M
 innodb_flush_log_at_trx_commit = 0
 innodb_file_per_table=ON
 innodb_flush_method=O_DIRECT
