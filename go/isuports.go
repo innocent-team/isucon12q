@@ -186,7 +186,8 @@ func Run() {
 
 	e.HTTPErrorHandler = errorResponseHandler
 
-	adminDB, err := ConnectAdminDB()
+	var err error
+	adminDB, err = ConnectAdminDB()
 	if err != nil {
 		e.Logger.Fatalf("failed to connect admin db: %v", err)
 		return
