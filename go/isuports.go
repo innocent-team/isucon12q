@@ -53,9 +53,6 @@ var (
 	tenantNameRegexp = regexp.MustCompile(`^[a-z][a-z0-9-]{0,61}[a-z0-9]$`)
 
 	adminDB *sqlx.DB
-
-	// XXX: もはや不要
-	sqliteDriverName = "sqlite3"
 )
 
 // 環境変数を取得する、なければデフォルト値を返す
@@ -88,24 +85,6 @@ func connectAdminDB() (*sqlx.DB, error) {
 		return nil, err
 	}
 	return sqlx.NewDb(db1, "mysql"), nil
-}
-
-// テナントDBのパスを返す
-// XXX: もはや不要
-func tenantDBPath(id int64) string {
-	tenantDBDir := getEnv("ISUCON_TENANT_DB_DIR", "../tenant_db")
-	return filepath.Join(tenantDBDir, fmt.Sprintf("%d.db", id))
-}
-
-// テナントDBに接続する
-func connectToTenantDB(id int64) (*sqlx.DB, error) {
-	return adminDB, nil
-}
-
-// テナントDBを新規に作成する
-// XXX: もはや不要
-func createTenantDB(id int64) error {
-	return nil
 }
 
 // システム全体で一意なIDを生成する
@@ -184,20 +163,6 @@ func Run() {
 	e := echo.New()
 	e.Debug = true
 	e.Logger.SetLevel(log.DEBUG)
-
-	var (
-		sqlLogger io.Closer
-		// err       error
-	)
-	// sqliteのクエリログを出力する設定
-	// 環境変数 ISUCON_SQLITE_TRACE_FILE を設定すると、そのファイルにクエリログをJSON形式で出力する
-	// 未設定なら出力しない
-	// sqltrace.go を参照
-	sqliteDriverName, sqlLogger, err = initializeSQLLogger()
-	if err != nil {
-		e.Logger.Panicf("error initializeSQLLogger: %s", err)
-	}
-	defer sqlLogger.Close()
 
 	e.Use(otelecho.Middleware("isuports"))
 	e.Use(middleware.Logger())
@@ -538,12 +503,6 @@ func tenantsAddHandler(c echo.Context) error {
 	if err != nil {
 		return fmt.Errorf("error get LastInsertId: %w", err)
 	}
-	// NOTE: 先にadminDBに書き込まれることでこのAPIの処理中に
-	//       /api/admin/tenants/billingにアクセスされるとエラーになりそう
-	//       ロックなどで対処したほうが良さそう
-	if err := createTenantDB(id); err != nil {
-		return fmt.Errorf("error createTenantDB: id=%d name=%s %w", id, name, err)
-	}
 
 	res := TenantsAddHandlerResult{
 		Tenant: TenantWithBilling{
@@ -722,10 +681,7 @@ func tenantsBillingHandler(c echo.Context) error {
 				Name:        t.Name,
 				DisplayName: t.DisplayName,
 			}
-			tenantDB, err := connectToTenantDB(t.ID)
-			if err != nil {
-				return fmt.Errorf("failed to connectToTenantDB: %w", err)
-			}
+			tenantDB := adminDB
 
 			cs := []CompetitionRow{}
 			if err := tenantDB.SelectContext(
@@ -783,7 +739,7 @@ func playersListHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return fmt.Errorf("error connectToTenantDB: %w", err)
 	}
@@ -828,7 +784,7 @@ func playersAddHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -890,7 +846,7 @@ func playerDisqualifiedHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -949,7 +905,7 @@ func competitionsAddHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -994,7 +950,7 @@ func competitionFinishHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1043,7 +999,7 @@ func competitionScoreHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1191,7 +1147,7 @@ func billingHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1247,7 +1203,7 @@ func playerHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role player required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1356,7 +1312,7 @@ func competitionRankingHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role player required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1495,7 +1451,7 @@ func playerCompetitionsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role player required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1518,7 +1474,7 @@ func organizerCompetitionsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "role organizer required")
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return err
 	}
@@ -1608,7 +1564,7 @@ func meHandler(c echo.Context) error {
 		})
 	}
 
-	tenantDB, err := connectToTenantDB(v.tenantID)
+	tenantDB, err := adminDB, nil
 	if err != nil {
 		return fmt.Errorf("error connectToTenantDB: %w", err)
 	}
