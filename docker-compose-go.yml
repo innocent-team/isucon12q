@@ -2,6 +2,7 @@ services:
   webapp:
     build: ./go
     environment:
+      GOOGLE_CLOUD_PROJECT: triple-innocent
       ISUCON_DB_HOST: 127.0.0.1
       ISUCON_DB_PORT: 3306
       ISUCON_DB_USER: isucon
