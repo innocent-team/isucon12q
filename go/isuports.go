@@ -688,34 +688,45 @@ type BillingRow struct {
 	VisitorCount  int64  `db:"visitor_count"`
 }
 
-func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
+func billingReportsByCompetitions(ctx context.Context, tenantDB dbOrTx, competitionIDs []string) (map[string]*BillingReport, error) {
+	billingReports := make(map[string]*BillingReport)
+	if len(competitionIDs) == 0 {
+		return billingReports, nil
+	}
 
-	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
+	type dtoCompetitionWithBilling struct {
+		// ここからCompetitionRow
+		ID    string `db:"id"`
+		Title string `db:"title"`
+		// ここからBillingRow
+		PlayerCount  int64 `db:"player_count"`
+		VisitorCount int64 `db:"visitor_count"`
+	}
+	var dtoReports []*dtoCompetitionWithBilling
+	query, args, err := sqlx.In(
+		"SELECT c.id, c.title, IFNULL(b.player_count, 0) AS player_count, IFNULL(b.visitor_count, 0) AS visitor_count "+
+			"FROM competition c "+
+			"LEFT JOIN billing b ON c.id = b.competition_id "+
+			"WHERE c.id IN (?) ", competitionIDs)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
+		return nil, err
 	}
-
-	var playerCount int64
-	var visitorCount int64
-	if comp.FinishedAt.Valid {
-		var billing BillingRow
-		if err := adminDB.GetContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? LIMIT 1", competitonID); err != nil {
-			return nil, fmt.Errorf("error Select billing %s: %w", competitonID, err)
+	err = tenantDB.SelectContext(ctx, &dtoReports, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	for _, report := range dtoReports {
+		billingReports[report.ID] = &BillingReport{
+			CompetitionID:     report.ID,
+			CompetitionTitle:  report.Title,
+			PlayerCount:       report.PlayerCount,
+			VisitorCount:      report.VisitorCount,
+			BillingPlayerYen:  100 * report.PlayerCount, // スコアを登録した参加者は100円
+			BillingVisitorYen: 10 * report.VisitorCount, // ランキングを閲覧だけした(スコアを登録していない)参加者は10円
+			BillingYen:        100*report.PlayerCount + 10*report.VisitorCount,
 		}
-
-		playerCount = billing.PlayerCount
-		visitorCount = billing.VisitorCount
 	}
-
-	return &BillingReport{
-		CompetitionID:     comp.ID,
-		CompetitionTitle:  comp.Title,
-		PlayerCount:       playerCount,
-		VisitorCount:      visitorCount,
-		BillingPlayerYen:  100 * playerCount, // スコアを登録した参加者は100円
-		BillingVisitorYen: 10 * visitorCount, // ランキングを閲覧だけした(スコアを登録していない)参加者は10円
-		BillingYen:        100*playerCount + 10*visitorCount,
-	}, nil
+	return billingReports, nil
 }
 
 type TenantWithBilling struct {
@@ -792,11 +803,16 @@ func tenantsBillingHandler(c echo.Context) error {
 			); err != nil {
 				return fmt.Errorf("failed to Select competition: %w", err)
 			}
-			for _, comp := range cs {
-				report, err := billingReportByCompetition(ctx, tenantDB, t.ID, comp.ID)
-				if err != nil {
-					return fmt.Errorf("failed to billingReportByCompetition: %w", err)
-				}
+			var competitionIDs []string
+			for _, c := range cs {
+				competitionIDs = append(competitionIDs, c.ID)
+			}
+
+			reports, err := billingReportsByCompetitions(ctx, tenantDB, competitionIDs)
+			if err != nil {
+				return fmt.Errorf("failed to Select competition with billing reports: %w", err)
+			}
+			for _, report := range reports {
 				tb.BillingYen += report.BillingYen
 			}
 			tenantBillings = append(tenantBillings, tb)
@@ -1280,10 +1296,18 @@ func billingHandler(c echo.Context) error {
 		return fmt.Errorf("error Select competition: %w", err)
 	}
 	tbrs := make([]BillingReport, 0, len(cs))
+	var compIDs []string
 	for _, comp := range cs {
-		report, err := billingReportByCompetition(ctx, tenantDB, v.tenantID, comp.ID)
-		if err != nil {
-			return fmt.Errorf("error billingReportByCompetition: %w", err)
+		compIDs = append(compIDs, comp.ID)
+	}
+	reports, err := billingReportsByCompetitions(ctx, tenantDB, compIDs)
+	if err != nil {
+		return fmt.Errorf("error Select billing reports: %w", err)
+	}
+	for _, comp := range cs {
+		report, ok := reports[comp.ID]
+		if !ok {
+			return fmt.Errorf("error billingReportByCompetition: not found compID=%s", comp.ID)
 		}
 		tbrs = append(tbrs, *report)
 	}
