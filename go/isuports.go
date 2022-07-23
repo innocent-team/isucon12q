@@ -660,7 +660,7 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 	}
 
 	var billing BillingRow
-	if err := adminDB.SelectContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? ORDER BY id DESC", competitonID); err != nil {
+	if err := adminDB.GetContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? LIMIT 1", competitonID); err != nil {
 		return nil, fmt.Errorf("error Select billing: %w", err)
 	}
 
