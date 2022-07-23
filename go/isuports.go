@@ -391,6 +391,26 @@ func retrievePlayer(ctx context.Context, tenantDB dbOrTx, id string) (*PlayerRow
 	return &p, nil
 }
 
+// 指定されたテナントの複数の参加者を取得する
+func retrieveMultiPlayers(ctx context.Context, tenantDB dbOrTx, ids []string) ([]*PlayerRow, error) {
+	var ps []*PlayerRow
+	if len(ids) == 0 {
+		return ps, nil
+	}
+	query, args, err := sqlx.In("SELECT * FROM player WHERE id IN (?)", ids)
+	if err != nil {
+		return nil, err
+	}
+	err = tenantDB.SelectContext(ctx, &ps, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == len(ps) {
+		return nil, fmt.Errorf("unknown ids")
+	}
+	return ps, nil
+}
+
 // 参加者を認可する
 // 参加者向けAPIで呼ばれる
 func authorizePlayer(ctx context.Context, tenantDB dbOrTx, id string) error {
