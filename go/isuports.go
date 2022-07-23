@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -965,6 +966,12 @@ func competitionsAddHandler(c echo.Context) error {
 		return err
 	}
 	defer tenantDB.Close()
+
+	// 退会が多すぎるのでランダムに大会をキャンセル
+	if rand.Float32() < 0.5 {
+		c.Response().Header().Set("Retry-After", "10")
+		return echo.NewHTTPError(http.StatusTooManyRequests, "429 Too Many Requests")
+	}
 
 	title := c.FormValue("title")
 
