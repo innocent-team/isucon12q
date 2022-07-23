@@ -638,7 +638,7 @@ func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingRep
 
 	// スコアを登録した参加者のIDを取得する
 	scoredPlayerIDs := []string{}
-	if err := adminDB.SelectContext(
+	if err := scoreDB.SelectContext(
 		ctx,
 		&scoredPlayerIDs,
 		"SELECT DISTINCT(player_id) FROM player_score WHERE tenant_id = ? AND competition_id = ?",
@@ -1216,7 +1216,7 @@ func competitionScoreHandler(c echo.Context) error {
 		return fmt.Errorf("error retrievePlayer: %w", err)
 	}
 
-	if _, err := tenantDB.ExecContext(
+	if _, err := scoreDB.ExecContext(
 		ctx,
 		"DELETE FROM player_score WHERE tenant_id = ? AND competition_id = ?",
 		v.tenantID,
@@ -1225,7 +1225,7 @@ func competitionScoreHandler(c echo.Context) error {
 		return fmt.Errorf("error Delete player_score: tenantID=%d, competitionID=%s, %w", v.tenantID, competitionID, err)
 	}
 	for _, ps := range playerScoreRows {
-		if _, err := tenantDB.NamedExecContext(
+		if _, err := scoreDB.NamedExecContext(
 			ctx,
 			"INSERT INTO player_score (tenant_id, player_id, competition_id, score, created_at, updated_at)"+
 				" VALUES (:tenant_id, :player_id, :competition_id, :score, :created_at, :updated_at) "+
@@ -1360,7 +1360,7 @@ func playerHandler(c echo.Context) error {
 	pss := make([]PlayerScoreRow, 0, len(cs))
 	for _, c := range cs {
 		ps := PlayerScoreRow{}
-		if err := tenantDB.GetContext(
+		if err := scoreDB.GetContext(
 			ctx,
 			&ps,
 			// 最後にCSVに登場したスコアを採用する
@@ -1486,7 +1486,7 @@ func competitionRankingHandler(c echo.Context) error {
 	}
 	defer fl.Close()
 	pss := []PlayerScoreRow{}
-	if err := tenantDB.SelectContext(
+	if err := scoreDB.SelectContext(
 		ctx,
 		&pss,
 		"SELECT * FROM player_score WHERE tenant_id = ? AND competition_id = ? ORDER BY updated_at DESC",
