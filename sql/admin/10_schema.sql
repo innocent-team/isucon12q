@@ -29,3 +29,11 @@ CREATE TABLE `visit_history` (
   `updated_at` BIGINT NOT NULL,
   INDEX `tenant_id_idx` (`tenant_id`)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4;
+
+
+CREATE TABLE `billing` (
+  `tennant_id` BIGINT UNSIGNED NOT NULL,
+  `competition_id` VARCHAR(255) NOT NULL UNIQUE,
+  `player_count` INT NOT NULL,
+  `visit_count` INT NOT NULL
+);

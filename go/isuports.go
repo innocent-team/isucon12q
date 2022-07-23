@@ -567,12 +567,9 @@ type VisitHistorySummaryRow struct {
 }
 
 // 大会ごとの課金レポートを計算する
-func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
-	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
-	}
-
+func UpdateBiliingReport(ctx context.Context, comp *CompetitionRow) (*BillingReport, error) {
+	tenantID := comp.TenantID
+	competitonID := comp.ID
 	// ランキングにアクセスした参加者のIDを取得する
 	vhs := []VisitHistorySummaryRow{}
 	if err := adminDB.SelectContext(
@@ -602,7 +599,7 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 
 	// スコアを登録した参加者のIDを取得する
 	scoredPlayerIDs := []string{}
-	if err := tenantDB.SelectContext(
+	if err := adminDB.SelectContext(
 		ctx,
 		&scoredPlayerIDs,
 		"SELECT DISTINCT(player_id) FROM player_score WHERE tenant_id = ? AND competition_id = ?",
@@ -626,7 +623,50 @@ func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID i
 				visitorCount++
 			}
 		}
+
+		_, err = adminDB.ExecContext(
+			ctx,
+			"INSERT INTO billing (tenant_id, competition_id, player_count, visitor_count) VALUES (?, ?, ?, ?)",
+			tenantID, comp.ID, playerCount, visitorCount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error Insert billing: %w", err)
+		}
 	}
+
+	return &BillingReport{
+		CompetitionID:     comp.ID,
+		CompetitionTitle:  comp.Title,
+		PlayerCount:       playerCount,
+		VisitorCount:      visitorCount,
+		BillingPlayerYen:  100 * playerCount, // スコアを登録した参加者は100円
+		BillingVisitorYen: 10 * visitorCount, // ランキングを閲覧だけした(スコアを登録していない)参加者は10円
+		BillingYen:        100*playerCount + 10*visitorCount,
+	}, nil
+}
+
+type BillingRow struct {
+	TenantID      int64  `db:"tenant_id"`
+	CompetitionID string `db:"competition_id"`
+	PlayerCount   int64  `db:"player_count"`
+	VisitorCount  int64  `db:"visitor_count"`
+}
+
+func billingReportByCompetition(ctx context.Context, tenantDB dbOrTx, tenantID int64, competitonID string) (*BillingReport, error) {
+
+	comp, err := retrieveCompetition(ctx, tenantDB, competitonID)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieveCompetition: %w", err)
+	}
+
+	var billing BillingRow
+	if err := adminDB.SelectContext(ctx, &billing, "SELECT * FROM billing where competition_id = ? ORDER BY id DESC", competitonID); err != nil {
+		return nil, fmt.Errorf("error Select billing: %w", err)
+	}
+
+	playerCount := billing.PlayerCount
+	visitorCount := billing.VisitorCount
+
 	return &BillingReport{
 		CompetitionID:     comp.ID,
 		CompetitionTitle:  comp.Title,
@@ -979,7 +1019,7 @@ func competitionFinishHandler(c echo.Context) error {
 	if id == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "competition_id required")
 	}
-	_, err = retrieveCompetition(ctx, tenantDB, id)
+	comp, err := retrieveCompetition(ctx, tenantDB, id)
 	if err != nil {
 		// 存在しない大会
 		if errors.Is(err, sql.ErrNoRows) {
@@ -999,6 +1039,11 @@ func competitionFinishHandler(c echo.Context) error {
 			now, now, id, err,
 		)
 	}
+
+	// 終了時にbilingを求めてcommit
+	// TODO 3秒ルールで遅延してOK
+	UpdateBiliingReport(ctx, comp)
+
 	return c.JSON(http.StatusOK, SuccessResult{Status: true})
 }
 
